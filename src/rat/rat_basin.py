@@ -779,7 +779,7 @@ def rat_basin(config, rat_logger, forecast_mode=False, gfs_days=0, forecast_base
                 rat_logger.warning("AEC files could not be copied to rat_outputs directory.", exc_info=True)
             #Generating evaporation, storage change and outflow.    
             DELS_STATUS, EVAP_STATUS, OUTFLOW_STATUS = run_postprocessing(basin_name, basin_data_dir, basin_reservoir_shpfile_path, reservoirs_gdf_column_dict,
-                                aec_dir_path, config['BASIN']['start'], config['BASIN']['end'], rout_init_state_save_file, use_state, evap_savedir, dels_savedir,
+                                aec_savedir, config['BASIN']['start'], config['BASIN']['end'], rout_init_state_save_file, use_state, evap_savedir, dels_savedir,
                                 nssc_savedir, outflow_savedir, VIC_STATUS, ROUTING_STATUS, GEE_STATUS, forecast_mode=forecast_mode)
         except:
             no_errors = no_errors+1
@@ -804,7 +804,7 @@ def rat_basin(config, rat_logger, forecast_mode=False, gfs_days=0, forecast_base
             
             ## Inflow
             if(ROUTING_STATUS):
-                convert_inflow(inflow_dst_dir, basin_reservoir_shpfile_path, reservoirs_gdf_column_dict, final_output_path)
+                convert_inflow(inflow_dst_dir, final_output_path)
                 rat_logger.info("Converted Inflow to the Output Format.")
             else:
                 rat_logger.info("Could not convert Inflow to the Output Format as Routing run failed.")
