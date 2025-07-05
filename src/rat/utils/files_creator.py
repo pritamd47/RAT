@@ -82,17 +82,18 @@ def create_vic_domain_param_file(global_vic_param_file,global_vic_domain_file,ba
     basin_vic_domain.to_netcdf(os.path.join(output_dir_path,'vic_domain.nc'))
 
 def create_basin_grid_flow_asc(global_flow_grid_dir_tif, basingridfile_path, savepath, flow_direction_replace_dict = None):
-    global_flow_grid_dir=rxr.open_rasterio(global_flow_grid_dir_tif)
-    basin_grid=rxr.open_rasterio(basingridfile_path)
-    basin_flow_grid_dir = global_flow_grid_dir.interp(x=np.array([round_up(i,5) for i in basin_grid.x.data ]),
-                                                                    y=np.array([round_up(i,5) for i in basin_grid.y.data ]),method='nearest')
-    if (flow_direction_replace_dict):
-        for i in flow_direction_replace_dict:
-            basin_flow_grid_dir = basin_flow_grid_dir.where(basin_flow_grid_dir!=i, flow_direction_replace_dict[i])
+    if not os.path.exists(savepath+'.tif'):
+        global_flow_grid_dir=rxr.open_rasterio(global_flow_grid_dir_tif)
+        basin_grid=rxr.open_rasterio(basingridfile_path)
+        basin_flow_grid_dir = global_flow_grid_dir.interp(x=np.array([round_up(i,5) for i in basin_grid.x.data ]),
+                                                                        y=np.array([round_up(i,5) for i in basin_grid.y.data ]),method='nearest')
+        if (flow_direction_replace_dict):
+            for i in flow_direction_replace_dict:
+                basin_flow_grid_dir = basin_flow_grid_dir.where(basin_flow_grid_dir!=i, flow_direction_replace_dict[i])
 
-    basin_flow_grid_dir = basin_flow_grid_dir.rio.write_nodata(0)
-    basin_flow_grid_dir = basin_flow_grid_dir.where(basin_grid.data==1,0)
-    basin_flow_grid_dir.rio.to_raster(savepath+'.tif', dtype='int16')
+        basin_flow_grid_dir = basin_flow_grid_dir.rio.write_nodata(0)
+        basin_flow_grid_dir = basin_flow_grid_dir.where(basin_grid.data==1,0)
+        basin_flow_grid_dir.rio.to_raster(savepath+'.tif', dtype='int16')
 
     # Change format, and save as asc file
     cmd = [
