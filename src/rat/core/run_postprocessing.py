@@ -234,7 +234,10 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                             evap_datadir, dels_savedir, nssc_savedir, outflow_savedir, vic_status, routing_status, gee_status, forecast_mode=False):
     # read file defining mapped resrvoirs
     # reservoirs_fn = os.path.join(project_dir, 'backend/data/ancillary/RAT-Reservoirs.geojson')
-    reservoirs = gpd.read_file(reservoir_shpfile)
+    if os.path.isfile(reservoir_shpfile):
+        reservoirs = gpd.read_file(reservoir_shpfile)
+    else:
+        raise Exception("Reservoir Shapefile is not avaialble. Evaporation, Storage change and Outflow cannot be calculated.")
     start_date_str = start_date.strftime("%Y-%m-%d")
     if(use_rout_state):
         start_date_str_evap = (start_date-datetime.timedelta(days=100)).strftime("%Y-%m-%d")
