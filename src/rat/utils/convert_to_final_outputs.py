@@ -24,10 +24,8 @@ def convert_sarea(sarea_dir, website_v_dir):
         df.to_csv(savepath, index=False)
 
 
-def convert_inflow(inflow_dir, reservoir_shpfile, reservoir_shpfile_column_dict,  final_out_dir):
+def convert_inflow(inflow_dir,  final_out_dir):
     # Inflow
-    reservoirs = gpd.read_file(reservoir_shpfile)
-    reservoirs['Inflow_filename'] = reservoirs[reservoir_shpfile_column_dict['unique_identifier']].astype(str)
 
     inflow_paths = list(Path(inflow_dir).glob('*.csv'))
     final_out_inflow_dir = Path(final_out_dir) / 'inflow'
