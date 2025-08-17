@@ -542,8 +542,11 @@ def aec_file_creator(
         reservoir_gpd = reservoir_gpd.set_crs(reservoirs_polygon.crs)
 
         reservoir_name = str(reservoir[shpfile_column_dict['unique_identifier']])
-        if reservoir[shpfile_column_dict['dam_height']] is not None:
-            dam_height = float(reservoir[shpfile_column_dict['dam_height']])
+        if shpfile_column_dict.get('dam_height'):
+            if reservoir[shpfile_column_dict['dam_height']] is not None:
+                dam_height = float(reservoir[shpfile_column_dict['dam_height']])
+            else:
+                dam_height = np.nan
         else:
             dam_height = np.nan
         dam_lat = float(reservoir[shpfile_column_dict['dam_lat']])
