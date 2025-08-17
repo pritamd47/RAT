@@ -549,17 +549,25 @@ def aec_file_creator(
                 dam_height = np.nan
         else:
             dam_height = np.nan
-        dam_lat = float(reservoir[shpfile_column_dict['dam_lat']])
-        dam_lon = float(reservoir[shpfile_column_dict['dam_lon']])
-        dam_location = Point(dam_lon, dam_lat)
+        
+        # 
+        dam_lat = float(reservoir[shpfile_column_dict.get('dam_lat')]) if shpfile_column_dict.get('dam_lat') else None
+        dam_lon = float(reservoir[shpfile_column_dict.get('dam_lon')]) if shpfile_column_dict.get('dam_lat') else None
+        if dam_lat and dam_lon:
+            dam_location = Point(dam_lon, dam_lat)
+        else:
+            dam_location = None
 
         aec, water_surface_exists = get_obs_aec_srtm(aec_dir_path, scale, reservoir, reservoir_name, clip_to_water_surf=True)
 
         if water_surface_exists:
-            extrapolate_reservoir(
-                reservoir_gpd, dam_location, reservoir_name, dam_height, aec,
-                aec_dir_path, grwl_fp=grwl_fp
-            )
+            if dam_location:
+                extrapolate_reservoir(
+                    reservoir_gpd, dam_location, reservoir_name, dam_height, aec,
+                    aec_dir_path, grwl_fp=grwl_fp
+                )
+            else:
+                print(f"No extrapolation was done in AEC for reservoir {reservoir_name} because of absence of absence of Dam Location. Reservoir's bottom elevation cannot be determined.")    
         else:
             print(f"No extrapolation was done in AEC for reservoir {reservoir_name} because of absence of water surface in AEC.")
 
