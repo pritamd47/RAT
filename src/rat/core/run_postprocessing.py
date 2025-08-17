@@ -176,7 +176,11 @@ def calc_E(res_data, start_date, end_date, forcings_path, vic_res_path, sarea, s
 
         # Save (Writing new file if not exist otherwise append)
         if existing_data is not None:
-            new_data = data.copy()
+            new_data = data.copy().reset_index(drop=True)
+            existing_data = existing_data.reset_index(drop=True)
+            # Remove duplicate columns for concatenation
+            existing_data = existing_data.loc[:, ~existing_data.columns.duplicated()]
+            new_data = new_data.loc[:, ~new_data.columns.duplicated()]
             # Concat the two dataframes into a new dataframe holding all the data (memory intensive):
             complement = pd.concat([existing_data, new_data], ignore_index=True)
             # Remove all duplicates:
@@ -348,7 +352,7 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                 no_failed_files +=1
         EVAP_STATUS = 1
         if no_failed_files:
-            log_level1.warning(f"Evapotration was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
+            log_level1.warning(f"Evaporation was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
     elif((not vic_status) and (not gee_status)):
         log.debug("Cannot Retrieve Evaporation because both VIC and GEE Run Failed.")
     elif(vic_status):
