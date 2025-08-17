@@ -180,7 +180,7 @@ def convert_meteorological_ts(catchment_shpfile, catchments_gdf_column_dict, bas
             
         return failed_res_no
     else:
-        return
+        return 'all'
     
 
 def convert_v2_frontend(basin_data_dir, res_name, inflow_src, sarea_src, dels_src, outflow_src):
