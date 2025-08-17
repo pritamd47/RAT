@@ -895,3 +895,7 @@ This section of the configuration file describes the parameters defined by `rout
     ```
     !!! note 
         It will be left blank if '-s' argument is not provided in `rat init` command.
+
+### Plugins
+
+This section of the configuration file is optional and can be used to run different Plugins as mentioned [here](../../Plugins/). It should be used to describe the parameters required by a plugin that you want to use.
