@@ -5,6 +5,7 @@ DOWNLOAD_LINKS_DROPBOX = {
     'global_vic_params': "https://www.dropbox.com/s/jsg2wu62qi2ltwz/global_vic_params.zip?dl=1",
 }
 
+## For google drive link, https://drive.google.com/file/d/<ID>/view?usp=sharing, use https://drive.google.com/uc?id=<ID>
 DOWNLOAD_LINKS_GOOGLE = {
     'route_model': "https://drive.google.com/uc?id=1zr3VH0wy-XN-yF2_n0xic89_PiT_V_Mb",
     'params': "https://drive.google.com/uc?id=1LAGivWvgBdtJvDWzkGKorzfjPEKvO69k",
