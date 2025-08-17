@@ -1,7 +1,7 @@
 from datetime import date
 
 DOWNLOAD_LINK_DROPBOX = {
-    'test_data': "https://www.dropbox.com/scl/fi/f1pnyz9mo178kweh3agtf/test_data.zip?dl=1&rlkey=qxvsfrhc2li55dh4yj4a03bq2"
+    'test_data': "https://www.dropbox.com/scl/fi/q88v9qpg20rhzhj8v4ktq/test_data.zip?rlkey=j6y1mlhc8vgzaicdofj4hn8g4&st=l7bcqmx1&dl=1"
 }
 
 ## For google drive link, https://drive.google.com/file/d/<ID>/view?usp=sharing, use https://drive.google.com/uc?id=<ID>
