@@ -66,7 +66,7 @@ It was originally developed by [Biswas et al. (2021)](https://doi.org/10.1016/j.
 The [Reservoir Assessment Tool (RAT) 2.0](https://depts.washington.edu/saswe/mekong/) was introduced with numerous improvements over the RAT 1.0. Such as weekly satellite observations (every 1-5 days) using a combination of multiple satellites (Sentinel-2, landsat-8, landsat-9 and Sentinel-1), usage of [VIC hydrological model](https://github.com/UW-Hydro/VIC) (VIC 5, [Hamman et al. (2018)](https://doi.org/10.5194/gmd-11-3481-2018)) and [MetSim](https://github.com/UW-Hydro/MetSim) in parallel computation mode, data storage using NetCDF format and explicit representation of Evaporation using the Penman Combination method.
 
 ## CITATION
-If you use this software, please cite #1 amd any other depending on the context of the work:
+If you use this software, please cite #1 and any other depending on the context of the work:
 
 1. [Minocha, S., Das, P., & Hossain, F. (2025). Reservoir assessment tool (RAT): a Python package for monitoring the dynamic state of reservoirs and analyzing dam operations. Digital Water, 3(1), 1–30. https://doi.org/10.1080/28375807.2025.2487762](https://doi.org/10.1080/28375807.2025.2487762). <br><br>
 

@@ -16,7 +16,7 @@ The Reservoir Assessment Tool (RAT) 2.0 was introduced with numerous improvement
 
 !!! note
 
-    If you use this software, please cite #1 amd any other depending on the context of the work:
+    If you use this software, please cite #1 and any other depending on the context of the work:
 
     1. [Minocha, S., Das, P., & Hossain, F. (2025). Reservoir assessment tool (RAT): a Python package for monitoring the dynamic state of reservoirs and analyzing dam operations. Digital Water, 3(1), 1–30. https://doi.org/10.1080/28375807.2025.2487762](https://doi.org/10.1080/28375807.2025.2487762). <br><br>
 
