@@ -21,7 +21,7 @@ The following parameters are required to enable the SWOT plugin in the [PLUGINS 
 * <h6 class="parameter_heading">*`swot`* :</h6>  
     <span class="requirement">Required parameter</span>  
 
-    <span class="parameter_property">Description </span>: Boolean flag that specifies whether to run SWOT plugin during RAT run.  
+    <span class="parameter_property">Description </span>:  Flag that specifies whether to run SWOT plugin during RAT run.  Accepted values are `True` or `False` or `only_swot`. If `only_swot` is specified, then only the SWOT plugin will run and not the default TMSOS.
 
     <span class="parameter_property">Syntax </span>:  
     ```yaml

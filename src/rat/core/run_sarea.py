@@ -22,7 +22,7 @@ log = getLogger(f"{LOG_NAME}.{__name__}")
 log_level1 = getLogger(f"{LOG_LEVEL1_NAME}.{__name__}")
 
 
-def run_sarea(start_date, end_date, sarea_save_dir, reservoirs_shpfile, shpfile_column_dict, swot_run= False, swot_prior_lake_shpfile=None, swot_prior_lake_shpfile_column_dict=None, swot_save_dir= None, filt_options = None, nssc_save_dir = None):
+def run_sarea(start_date, end_date, sarea_save_dir, reservoirs_shpfile, shpfile_column_dict, basin_bounds, swot_run= False, swot_prior_lake_shpfile=None, swot_prior_lake_shpfile_column_dict=None, swot_save_dir= None, filt_options = None, nssc_save_dir = None):
     if isinstance(reservoirs_shpfile, gpd.GeoDataFrame):
         reservoirs_polygon = reservoirs_shpfile
     else:
@@ -36,7 +36,7 @@ def run_sarea(start_date, end_date, sarea_save_dir, reservoirs_shpfile, shpfile_
         if swot_prior_lake_shpfile and swot_prior_lake_shpfile_column_dict:
             if os.path.isfile(swot_prior_lake_shpfile):
                 log.info("Reading SWOT Prior Lake Data (PLD) file ....")
-                swot_pld_gdf = gpd.read_file(swot_prior_lake_shpfile)
+                swot_pld_gdf = gpd.read_file(swot_prior_lake_shpfile, bbox=tuple(basin_bounds))
                 pld_rat_matched_basin_gdf = sarea_swot.compute_swot_prior_lake_matching(rat_lakes = reservoirs_polygon,
                                             prior_lakes = swot_pld_gdf,
                                             rat_lake_id_field = shpfile_column_dict['unique_identifier'],
@@ -61,6 +61,7 @@ def run_sarea(start_date, end_date, sarea_save_dir, reservoirs_shpfile, shpfile_
     Optical_files = 0
     Tmsos_files = 0
     Partial_optical_tmsos_files = 0
+    SWOT_files = 0
     i = 1
     for reservoir_no,reservoir in reservoirs_polygon.iterrows():
         # printing reservoir id & name (whatever available)
@@ -81,14 +82,18 @@ def run_sarea(start_date, end_date, sarea_save_dir, reservoirs_shpfile, shpfile_
                 reservoir_prior_lakes_gdf = None
             log.info(f"Calculating surface area for {reservoir_name}.")
             method = run_sarea_for_res(reservoir_name, reservoir_area, reservoir_polygon, start_date, end_date, sarea_save_dir, nssc_save_dir, 
-                                       swot_save_dir, reservoir_prior_lakes_gdf, swot_id_column_dict)
+                                       swot_run, swot_save_dir, reservoir_prior_lakes_gdf, swot_id_column_dict)
             log.info(f"Calculated surface area for {reservoir_name} successfully using {method} method.")
             if method == 'Optical':
                 Optical_files += 1
             elif method == 'Combine':
                 Partial_optical_tmsos_files +=1
-            else:
+            elif method == 'TMS-OS':
                 Tmsos_files += 1
+            elif method == 'SWOT':
+                SWOT_files +=1
+            else:
+                pass
         except:
             log.exception(f"Surface area calculation failed for {reservoir_name}.")
             no_failed_files += 1
@@ -98,6 +103,8 @@ def run_sarea(start_date, end_date, sarea_save_dir, reservoirs_shpfile, shpfile_
         log_level1.warning(f"Surface area was calculated using only Optical data and not TMS-OS for {Optical_files} reservoirs. It can be due to insufficient SAR data. Please refer level-2 log file for more details.")
     if Partial_optical_tmsos_files:
         log_level1.warning(f"Surface area was calculated partially using only Optical data and rest using TMS-OS for {Partial_optical_tmsos_files} reservoirs. It can be due to more Optical data than SAR data. Please refer level-2 log file for more details.")
+    if SWOT_files:
+        log_level1.warning(f"Surface area was calculated using only SWOT data for {SWOT_files} reservoirs as 'only_swot' plugin was requested. Please refer level-2 log file for more details.")
         
     #Running Bot Filter
     if filt_options is not None:
@@ -109,7 +116,7 @@ def run_sarea(start_date, end_date, sarea_save_dir, reservoirs_shpfile, shpfile_
         else:
             bot_filter(sarea_save_dir,shpfile_column_dict,reservoirs_shpfile,**filt_options)    
 
-def run_sarea_for_res(reservoir_name, reservoir_area, reservoir_polygon, start_date, end_date, sarea_save_dir, nssc_save_dir, swot_save_dir, reservoir_prior_lakes_gdf, swot_id_column_dict, simplification=True):
+def run_sarea_for_res(reservoir_name, reservoir_area, reservoir_polygon, start_date, end_date, sarea_save_dir, nssc_save_dir, swot_run, swot_save_dir, reservoir_prior_lakes_gdf, swot_id_column_dict, simplification=True):
     
     if simplification:
         # Below function simplifies geometry with shape index (complexity) higher than a threshold, otherwise original geometry is retained
@@ -131,6 +138,10 @@ def run_sarea_for_res(reservoir_name, reservoir_area, reservoir_polygon, start_d
         #                     rat_lake_name_field,
         #                     save_path
         #                 )
+    
+    if swot_run == 'only_swot':
+        # If only SWOT run is requested, return here
+        return 'SWOT'
     
     # Sentinel-2
     log.debug(f"Reservoir: {reservoir_name}; Downloading Sentinel-2 data from {start_date} to {end_date}")

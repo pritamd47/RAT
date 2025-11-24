@@ -739,6 +739,7 @@ def rat_basin(config, rat_logger, forecast_mode=False, gfs_days=0, forecast_base
                 sarea_save_dir=sarea_savepath,
                 reservoirs_shpfile=basin_reservoir_shpfile_path,
                 shpfile_column_dict=reservoirs_gdf_column_dict,
+                basin_bounds= basin_bounds,
                 swot_run= run_swot_plugin,
                 swot_prior_lake_shpfile=config.get('PLUGINS',{}).get('swot_prior_lake_shpfile', None),
                 swot_prior_lake_shpfile_column_dict=config.get('PLUGINS',{}).get('swot_prior_lake_shpfile_column_dict', None),
