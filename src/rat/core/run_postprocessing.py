@@ -199,7 +199,7 @@ def calc_E(res_data, start_date, end_date, forcings_path, vic_res_path, sarea, s
         data = data.set_index('time').sort_values(by='time')
         
     else:
-        raise ValueError("VIC result file or any existing evaporation rat_outputs file not found.")
+        raise ValueError(f"VIC result file or any existing evaporation rat_outputs file not found.")
     
     # get sarea - if string, read from file, else use same surface area value for all time steps
     log.debug(f"Getting surface areas - {sarea}")
@@ -353,9 +353,9 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                                 using='area'
                             )
                 else:
-                    raise Exception("Surface area file not found; skipping ∆S calculation")
+                    raise Warning("TMSOS Surface area file for {reservoir_name} not found; skipping TMSOS based ∆S calculation.")
             except:
-                log.exception(f"∆S for {reservoir_name} could not be calculated.")
+                log.exception(f"TMSOS based ∆S for {reservoir_name} could not be calculated.")
                 no_failed_files += 1
             
             ## SWOT based dels
@@ -412,7 +412,7 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                 no_swot_failed_files += 1
         DELS_STATUS=1
         if no_failed_files:
-            log_level1.warning(f"∆S was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
+            log_level1.warning(f"TMSOS based ∆S was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
         if no_swot_failed_files:
             log_level1.warning(f"SWOT based ∆S was not calculated for {no_swot_failed_files} reservoir(s). Please check Level-2 log file for more details.")
         log.debug("∆S calculation completed.")
@@ -437,14 +437,14 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                     nssc_df = pd.read_csv(nssc_path)
                     nssc_df.to_csv(nssc_savepath, index=False)
                 else:
-                    raise Exception(f"NSSC file not found for {reservoir_name}; skipping copy to RAT Outputs")
+                    raise Warning(f"NSSC file not found for {reservoir_name}; skipping copy to RAT Outputs")
                 
             except:
                 log.exception(f"NSSC for {reservoir_name} could not be calculated.")
                 no_failed_files += 1 
         DELS_STATUS=1
         if no_failed_files:
-            log_level1.warning(f"NSSC was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
+            log_level1.warning(f"GEE based NSSC was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
     else:
         log.debug("Cannot Calculate NSSC because GEE Run Failed.")    
 
@@ -477,13 +477,13 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                     sarea = sarea_path
                 e_path = os.path.join(evap_datadir, reservoir_name + ".csv")
                 
-                if os.path.isfile(sarea) or isinstance(sarea, float):
+                if isinstance(sarea, float) or os.path.isfile(sarea):
                     log.debug(f"Calculating Evaporation for {reservoir_name}")
                     calc_E(reservoir, start_date_str_evap, end_date_str, forcings_path, vic_results_path, sarea, e_path, forecast_mode=forecast_mode)
                 else:
                     raise Exception("Surface area or VIC result file not found; skipping evaporation calculation")          
             except:
-                log.exception(f"Evaporation for {reservoir_name} could not be calculated.")
+                log.exception(f"TMSOS based Evaporation for {reservoir_name} could not be calculated.")
                 no_failed_files +=1
             
             ## SWOT Evaporation
@@ -515,7 +515,7 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                 no_swot_failed_files += 1    
         EVAP_STATUS = 1
         if no_failed_files:
-            log_level1.warning(f"Evaporation was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
+            log_level1.warning(f"TMSOS based Evaporation was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
         if no_swot_failed_files:
             log_level1.warning(f"SWOT based evaporation was not calculated for {no_swot_failed_files} reservoir(s). Please check Level-2 log file for more details.")
     elif((not vic_status) and (not gee_status)):
@@ -546,7 +546,7 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                 log.debug(f"Calculating Outflow for {reservoir_name} saving at: {savepath}")
                 calc_outflow(inflowpath, deltaS, epath, a, savepath)
             except:
-                log.exception(f"Outflow for {reservoir_name} could not be calculated")
+                log.exception(f"TMSOS based Outflow for {reservoir_name} could not be calculated")
                 no_failed_files+=1
             
             ## SWOT Outflow 
@@ -576,7 +576,7 @@ def run_postprocessing(basin_name, basin_data_dir, reservoir_shpfile, reservoir_
                 
         OUTFLOW_STATUS = 1
         if no_failed_files:
-            log_level1.warning(f"Outflow was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
+            log_level1.warning(f"TMSOS based Outflow was not calculated for {no_failed_files} reservoir(s). Please check Level-2 log file for more details.")
         if no_swot_failed_files:
             log_level1.warning(f"SWOT based outflow was not calculated for {no_swot_failed_files} reservoir(s). Please check Level-2 log file for more details.")
     else:
