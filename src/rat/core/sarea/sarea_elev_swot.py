@@ -415,6 +415,8 @@ def hydrocron_ts_swot(
             # Read existing data
             existing_df = pd.read_csv(save_path)
             # Concatenate and remove duplicates on 'time'
+            existing_df["time"] = pd.to_datetime(existing_df["time"])
+            swot_ts["time"] = pd.to_datetime(swot_ts["time"])
             combined_df = pd.concat([existing_df, swot_ts], ignore_index=True)
             combined_df = combined_df.drop_duplicates(subset=["time"], keep="last")
             combined_df = combined_df.sort_values(by="time")
