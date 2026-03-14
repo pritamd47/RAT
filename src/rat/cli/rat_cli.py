@@ -6,7 +6,7 @@ import shutil
 from rat.cli.rat_test_config import DOWNLOAD_LINK_DROPBOX
 import requests, zipfile, io
 import yaml
-import ruamel_yaml as ryaml
+import ruamel.yaml as ryaml
 import gdown
 
 def gdrive_download(url, output, extract_dir,quiet=False):

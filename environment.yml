@@ -13,7 +13,7 @@ dependencies:
   - dask
   - scipy
   - scikit-learn
-  - ruamel_yaml
+  - ruamel.yaml
   - yaml
   - gdown
   - plotly

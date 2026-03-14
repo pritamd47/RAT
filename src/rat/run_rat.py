@@ -11,7 +11,7 @@ import yaml
 import argparse
 import configparser
 import ee
-import ruamel_yaml as ryaml
+import ruamel.yaml as ryaml
 from pathlib import Path 
 from dask.distributed import Client, LocalCluster
 

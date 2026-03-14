@@ -1,4 +1,4 @@
-import ruamel_yaml as ryaml
+import ruamel.yaml as ryaml
 from pathlib import Path
 
 #Function to update configuration file given a parameters dictionary
