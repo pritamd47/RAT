@@ -4,6 +4,10 @@ import datetime
 import copy
 import os
 import sys
+from pathlib import Path
+
+import rasterio
+os.environ['PROJ_DATA'] = str(Path(rasterio.__file__).parent / 'proj_data')
 
 import pandas as pd
 import numpy as np
