@@ -25,7 +25,7 @@ def create_basingridfile(basin_bounds,basin_geometry,basingridfile_path,xres,yre
         width=Z.shape[1],
         count=1,
         dtype=Z.dtype,
-        crs='+init=epsg:4326',
+        crs='EPSG:4326',
         transform=trf
     ) as dst:
         dst.write(Z, 1)
