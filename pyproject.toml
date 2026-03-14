@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rat"
-version = "develop"
+version = "3.0.19"
 authors = [
   { name="Pritam Das", email="pdas47@uw.edu" },
   { name="Sanchit Minocha", email="msanchit@uw.edu" },
@@ -29,7 +29,7 @@ dependencies = [
     "dask",
     "scipy",
     "scikit-learn",
-    "ruamel-yaml",
+    "ruamel.yaml",
     "PyYAML",
     "gdown",
     "geonetworkx",
