@@ -1,5 +1,6 @@
 import subprocess
 import requests
+import numpy as np
 from datetime import datetime, timedelta
 import calendar
 import os
@@ -7,6 +8,8 @@ import time
 import shutil
 import tempfile
 import rioxarray as rxr
+import rasterio
+from rasterio.enums import Resampling
 import xarray as xr
 from logging import getLogger
 import pandas as pd
@@ -28,11 +31,12 @@ def run_command(cmd,shell_bool=False):
     raises an Exception
     """
     res = subprocess.run(cmd, check=True, capture_output=True,shell=shell_bool)
-    
+
     if res.returncode != 0:
         log.error(f"Error with return code {res.returncode}")
         raise Exception
     return res.returncode
+
 
 def _determine_precip_version(date):
     """Determines which version of IMERG to download. Most preferred is IMERG Late, followed by
@@ -189,7 +193,7 @@ def download_tmax(year, outputpath):
             'wget', 
             '-O', 
             f'{outputpath}', 
-            f'ftp://ftp.cdc.noaa.gov/Datasets/cpc_global_temp/tmax.{year}.nc'
+            f'https://downloads.psl.noaa.gov/Datasets/cpc_global_temp/tmax.{year}.nc'
         ]
         log.debug("Downloading tmax: %s", year)
         return run_command(cmd)
@@ -205,7 +209,7 @@ def download_tmax(year, outputpath):
                     'wget', 
                     '-O', 
                     f'{outputpath}', 
-                    f'ftp://ftp.cdc.noaa.gov/Datasets/cpc_global_temp/tmax.{year}.nc'
+                    f'https://downloads.psl.noaa.gov/Datasets/cpc_global_temp/tmax.{year}.nc'
                 ]
             return run_command(cmd)
         else:
@@ -224,7 +228,7 @@ def download_tmin(year, outputpath):
             'wget', 
             '-O', 
             f'{outputpath}', 
-            f'ftp://ftp.cdc.noaa.gov/Datasets/cpc_global_temp/tmin.{year}.nc'
+            f'https://downloads.psl.noaa.gov/Datasets/cpc_global_temp/tmin.{year}.nc'
         ]
         log.debug("Downloading tmin: %s", year)
         return run_command(cmd)
@@ -240,7 +244,7 @@ def download_tmin(year, outputpath):
                     'wget', 
                     '-O', 
                     f'{outputpath}', 
-                    f'ftp://ftp.cdc.noaa.gov/Datasets/cpc_global_temp/tmin.{year}.nc'
+                    f'https://downloads.psl.noaa.gov/Datasets/cpc_global_temp/tmin.{year}.nc'
                 ]
             return run_command(cmd)
         else:
@@ -254,28 +258,18 @@ def download_uwnd(year, outputpath):
     """
     ## New data will keep on coming in the year going on i.e. recent year
     if (not(os.path.exists(outputpath))):
-        cmd = [
-            'wget', 
-            '-O', 
-            f'{outputpath}', 
-            f'ftp://ftp2.psl.noaa.gov/Datasets/ncep.reanalysis/surface_gauss/uwnd.10m.gauss.{year}.nc'
-        ]
+        cmd = ['wget', '-O', outputpath, f'https://downloads.psl.noaa.gov/Datasets/ncep.reanalysis/surface_gauss/uwnd.10m.gauss.{year}.nc']
         log.debug("Downloading uwnd: %s", year)
         return run_command(cmd)
     else:
         log.info("File already exists uwnd: %s", year)
-        # Checking days in year and in file. 
+        # Checking days in year and in file.
         days_in_year=366 if calendar.isleap(int(year)) else 365
         with xr.open_dataset(outputpath) as nc_data:
             days_in_file = int(len(nc_data['time'])/4)  # daily 4 times data at 6hr frequency
         if(days_in_file<days_in_year):
             log.info(f"The file has only data for {days_in_file} days which is less than the days in the year ({days_in_year}).So, updating the uwnd file: {year}")
-            cmd = [
-                    'wget', 
-                    '-O', 
-                    f'{outputpath}', 
-                    f'ftp://ftp2.psl.noaa.gov/Datasets/ncep.reanalysis/surface_gauss/uwnd.10m.gauss.{year}.nc'
-                ]
+            cmd = ['wget', '-O', outputpath, f'https://downloads.psl.noaa.gov/Datasets/ncep.reanalysis/surface_gauss/uwnd.10m.gauss.{year}.nc']
             return run_command(cmd)
         else:
             log.info(f"The uwnd file has complete data for {days_in_file} days of the year. No need to download for {year}.")
@@ -288,27 +282,18 @@ def download_vwnd(year, outputpath):
     """
     ## New data will keep on coming in the year going on i.e. recent year
     if (not(os.path.exists(outputpath))):
-        cmd = [
-            'wget', 
-            '-O', 
-            f'{outputpath}', 
-            f'ftp://ftp2.psl.noaa.gov/Datasets/ncep.reanalysis/surface_gauss/vwnd.10m.gauss.{year}.nc']
+        cmd = ['wget', '-O', outputpath, f'https://downloads.psl.noaa.gov/Datasets/ncep.reanalysis/surface_gauss/vwnd.10m.gauss.{year}.nc']
         log.debug("Downloading vwnd: %s", year)
         return run_command(cmd)
     else:
         log.info("File already exists vwnd: %s", year)
-        # Checking days in year and in file. 
+        # Checking days in year and in file.
         days_in_year=366 if calendar.isleap(int(year)) else 365
         with xr.open_dataset(outputpath) as nc_data:
             days_in_file = int(len(nc_data['time'])/4) # daily 4 times data at 6hr frequency
         if(days_in_file<days_in_year):
             log.info(f"The file has only data for {days_in_file} days which is less than the days in the year ({days_in_year}).So, updating the vwnd file: {year}")
-            cmd = [
-                    'wget', 
-                    '-O', 
-                    f'{outputpath}', 
-                    f'ftp://ftp2.psl.noaa.gov/Datasets/ncep.reanalysis/surface_gauss/vwnd.10m.gauss.{year}.nc'
-                ]
+            cmd = ['wget', '-O', outputpath, f'https://downloads.psl.noaa.gov/Datasets/ncep.reanalysis/surface_gauss/vwnd.10m.gauss.{year}.nc']
             return run_command(cmd)
         else:
             log.info(f"The vwnd file has complete data for {days_in_file} days of the year. No need to download for {year}.")
@@ -367,93 +352,98 @@ def download_data(begin, end, datadir, secrets):
     
     results = dask.compute(*futures)
 
+def _clip_scale_save_precip(basin_bounds, srcpath, dstpath):
+    """Clip IMERG tif to basin_bounds, resample to 0.0625 deg, scale by 0.1, write as GeoTiff."""
+    NODATA = -9999.0
+    RES = 0.0625
+    minx, miny, maxx, maxy = basin_bounds
+    nx = round((maxx - minx) / RES)
+    ny = round((maxy - miny) / RES)
+    da = rxr.open_rasterio(srcpath, masked=True)
+    da = da * 0.1
+    da = da.rio.reproject(
+        da.rio.crs,
+        shape=(ny, nx),
+        transform=rasterio.transform.from_origin(minx, maxy, RES, RES),
+        resampling=Resampling.nearest,
+        nodata=NODATA
+    )
+    da = da.assign_coords(x=np.array(da.x.data).round(5), y=np.array(da.y.data).round(5))
+    da = da.round(4)
+    da.rio.to_raster(dstpath, driver='GTiff')
+
+
 def process_precip(basin_bounds, srcpath, dstpath, secrets=None, temp_datadir=None, itry=0):
     """For any IMERG Precipitation file located at `srcpath` is clipped, scaled and converted to
-    ASCII grid file and saved at `dstpath`. All of this is done in a temporarily created directory
-    which can be controlled by the `datadir` path
+    ASCII grid file and saved at `dstpath`.
     """
     src_fn = Path(srcpath)
     date = pd.to_datetime(src_fn.stem.split('_')[0])
     if temp_datadir is not None and not os.path.isdir(temp_datadir):
         log.warning(f"ERROR: {temp_datadir} directory doesn't exist")
-        STATUS='FAILED'
-        return date, 'Precipitaion', STATUS
-    
-    if not(os.path.exists(dstpath)):
+        return date, 'Precipitaion', 'FAILED'
+
+    if not os.path.exists(dstpath):
         log.debug("Processing Precipitation file: %s", srcpath)
         STATUS = 'STARTED'
-        with tempfile.TemporaryDirectory(dir=temp_datadir) as tempdir:
-            clipped_temp_file = os.path.join(tempdir, 'clipped.tif')
-            cmd = [
-                "gdalwarp",
-                "-dstnodata", 
-                "-9999.0",
-                "-tr",
-                "0.0625",
-                "0.0625",
-                "-te",
-                str(basin_bounds[0]),
-                str(basin_bounds[1]),
-                str(basin_bounds[2]),
-                str(basin_bounds[3]),
-                '-of',
-                'GTiff',
-                '-overwrite', 
-                f'{srcpath}',
-                clipped_temp_file
-            ]
-            try:
-                run_command(cmd)
-                
-            except subprocess.CalledProcessError as e:
-                log.error(f"subprocess.CalledProcessError in {date}: ", e)
-                # delete old precipitation file and redownload. retry once
-                try:
-                    src_fn = Path(srcpath)
-                    src_fn.unlink(missing_ok=True)
-
-                    version = _determine_precip_version(date)
-
-                    download_precip(date, version, srcpath, secrets)
-                    run_command(cmd)
-                except:
-                    log.warning('Processing failed. Downloaded file might be corrupted.')
-                    STATUS='FAILED'
-                    return date, 'Precipitaion', STATUS
-
-            # Scale down (EARLY)
-            scaled_temp_file = os.path.join(tempdir, 'scaled.tif')
-            cmd = [
-                "gdal_calc.py", 
-                "-A", 
-                clipped_temp_file, 
-                f"--calc=A*0.1", 
-                f"--outfile={scaled_temp_file}", 
-                "--NoDataValue=-9999", 
-                "--format=GTiff"
-            ]
-            run_command(cmd)
-
-            # Change format, and save as processed file
-            aai_temp_file = os.path.join(tempdir, 'processed.tif')
-            cmd = [
-                'gdal_translate',
-                '-of', 
-                'aaigrid', 
-                scaled_temp_file, 
-                aai_temp_file
-            ]
-            run_command(cmd)
-
-            # Move to destination
-            shutil.move(aai_temp_file, dstpath)
+        try:
+            _clip_scale_save_precip(basin_bounds, srcpath, dstpath)
             STATUS = 'SUCCESS'
+        except Exception as e:
+            log.error(f"Processing error in {date}: {e}")
+            # delete old precipitation file and redownload, retry once
+            try:
+                src_fn.unlink(missing_ok=True)
+                version = _determine_precip_version(date)
+                download_precip(date, version, srcpath, secrets)
+                _clip_scale_save_precip(basin_bounds, srcpath, dstpath)
+                STATUS = 'SUCCESS'
+            except Exception:
+                log.warning('Processing failed. Downloaded file might be corrupted.')
+                STATUS = 'FAILED'
     else:
         STATUS = 'SKIPPED'
         log.debug(f"Processing Precipitation file exist: {srcpath}")
     return date, 'Precipitaion', STATUS
 
-def process_nc(basin_bounds,date, srcpath, dstpath, temp_datadir=None, var='---'):
+def _clip_save_nc(basin_bounds, srcpath, date, var, dstpath):
+    """Extract a date slice from a NetCDF file, wrap longitudes to -180/180,
+    resample to basin_bounds at 0.0625 deg, and write as GeoTiff."""
+    NODATA = -9999.0
+    RES = 0.0625
+
+    ds = xr.open_dataset(srcpath)
+    # Select time slice by day-of-year index (matches gdal_translate -b behaviour)
+    da = ds[var].isel(time=date.dayofyear - 1)
+
+    # Wrap longitudes from 0-360 to -180-180
+    da = da.assign_coords(lon=((da.lon + 180) % 360 - 180)).sortby('lon')
+
+    da = da.rio.set_spatial_dims(x_dim='lon', y_dim='lat')
+    da = da.rio.write_crs('EPSG:4326')
+
+    # Reproject to an output grid defined exactly by basin_bounds and RES.
+    # Mirrors gdalwarp -te -tr: all variables land on the same pixel grid
+    # regardless of source grid alignment (regular or Gaussian).
+    minx, miny, maxx, maxy = basin_bounds
+    nx = round((maxx - minx) / RES)
+    ny = round((maxy - miny) / RES)
+    da = da.rio.reproject(
+        'EPSG:4326',
+        shape=(ny, nx),
+        transform=rasterio.transform.from_origin(minx, maxy, RES, RES),
+        resampling=Resampling.nearest,
+        nodata=NODATA
+    )
+    da = da.assign_coords(x=np.array(da.x.data).round(5), y=np.array(da.y.data).round(5))
+    da = da.round(4)
+    da.attrs.pop('_FillValue', None)
+    da.encoding.pop('_FillValue', None)
+    da.rio.write_nodata(NODATA, inplace=True)
+    da.rio.to_raster(dstpath, driver='GTiff')
+
+
+def process_nc(basin_bounds, date, srcpath, dstpath, temp_datadir=None, var='---'):
     """For TMax, TMin, UWnd and VWnd, the processing steps are same, and can be performed using
     this function.
 
@@ -463,77 +453,22 @@ def process_nc(basin_bounds,date, srcpath, dstpath, temp_datadir=None, var='---'
         dstpath: path where the final ascii file will be saved
         temp_datadir: directory where the temporary data will be stored
     """
+    os.environ['PROJ_DATA'] = str(Path(rasterio.__file__).parent / 'proj_data')
     if temp_datadir is not None and not os.path.isdir(temp_datadir):
         log.warning(f"ERROR: {temp_datadir} directory doesn't exist")
-        STATUS='FAILED'
-        return date, var, STATUS
+        return date, var, 'FAILED'
 
-    if not(os.path.exists(dstpath)):
+    if not os.path.exists(dstpath):
         log.debug("Processing NC file: %s for date %s", srcpath, date.strftime('%Y-%m-%d'))
         STATUS = 'STARTED'
-        with tempfile.TemporaryDirectory(dir=temp_datadir) as tempdir:
-            # Convert from NC to Tif
-            band = date.strftime("%-j")   # required band number is defined by `day of year`
-            converted_tif_temp_file = os.path.join(tempdir, "converted.tif")
-
-            # NC to tiff format
-            cmd = ["gdal_translate", "-of", "Gtiff", "-b", band, srcpath, converted_tif_temp_file]
-            run_command(cmd)
-
-            #warping it so that lon represents -180 to 180 rather than 0 to 360
-            warped_temp_file = os.path.join(tempdir, "warped.tif")
-            cmd = ["gdalwarp", 
-            "-s_srs",
-            "'+proj=latlong +datum=WGS84 +pm=180dW'",
-            "-dstnodata",
-            "-9999.0",
-            "-te",
-            "-180",
-            "-90",
-            "180",
-            "90",
-            "-of",
-            "GTiff",
-            "-overwrite", 
-            converted_tif_temp_file, 
-            warped_temp_file]
-            # runs and return non-zero code, so don't use run_command
-            cmd = " ".join(cmd) 
-            subprocess.run(cmd, shell=True,stdout=subprocess.DEVNULL)
-            
-            
-            # Change resolution
-            scaled_temp_file = os.path.join(tempdir, "scaled.tif")
-            cmd = [
-                "gdalwarp",
-                "-dstnodata", 
-                "-9999.0",
-                "-tr",
-                "0.0625",
-                "0.0625",
-                "-te",
-                str(basin_bounds[0]),
-                str(basin_bounds[1]),
-                str(basin_bounds[2]),
-                str(basin_bounds[3]),
-                '-of',
-                'GTiff',
-                '-overwrite',  
-                warped_temp_file, 
-                scaled_temp_file]
-
-            run_command(cmd)
-
-            # Convert GeoTiff to AAI
-            aai_temp_file = os.path.join(tempdir, "final_aai.tif")
-            cmd = ["gdal_translate", "-of", "aaigrid", scaled_temp_file, aai_temp_file]
-            run_command(cmd)
-
-            # Move file to destination
-            shutil.move(aai_temp_file, dstpath)
-            STATUS='SUCCESS' 
+        try:
+            _clip_save_nc(basin_bounds, srcpath, date, var, dstpath)
+            STATUS = 'SUCCESS'
+        except Exception as e:
+            log.error(f"Processing error for {var} on {date.strftime('%Y-%m-%d')}: {e}")
+            STATUS = 'FAILED'
     else:
-        STATUS='SKIPPED'
+        STATUS = 'SKIPPED'
         log.debug(f"Processing NC file exists: {srcpath} for date {date.strftime('%Y-%m-%d')}")
     return date, var, STATUS
 
@@ -555,7 +490,7 @@ def process_data(basin_bounds,raw_datadir, processed_datadir, begin, end, secret
     for srcname in os.listdir(raw_datadir_precip):
         if datetime.strptime(srcname.split(os.sep)[-1].split("_")[0], "%Y-%m-%d") in ds:
             srcpath = os.path.join(raw_datadir_precip, srcname)
-            dstpath = os.path.join(processed_datadir_precip, srcname.replace("tif", "asc"))
+            dstpath = os.path.join(processed_datadir_precip, srcname)
 
             # pbar.set_description(f"Precipitation: {srcname.split('_')[0]}")
             future = dask.delayed(process_precip)(basin_bounds, srcpath, dstpath, secrets, temp_datadir)
@@ -571,7 +506,7 @@ def process_data(basin_bounds,raw_datadir, processed_datadir, begin, end, secret
 
     for date in required_dates:
         srcpath = os.path.join(raw_datadir_tmax, date.strftime('%Y')+'.nc')
-        dstpath = os.path.join(processed_datadir_tmax, f"{date.strftime('%Y-%m-%d')}_TMAX.asc")
+        dstpath = os.path.join(processed_datadir_tmax, f"{date.strftime('%Y-%m-%d')}_TMAX.tif")
 
         future = dask.delayed(process_nc)(basin_bounds,date, srcpath, dstpath, temp_datadir, "tmax")
         futures.append(future)
@@ -583,7 +518,7 @@ def process_data(basin_bounds,raw_datadir, processed_datadir, begin, end, secret
 
     for date in required_dates:
         srcpath = os.path.join(raw_datadir_tmin, date.strftime('%Y')+'.nc')
-        dstpath = os.path.join(processed_datadir_tmin, f"{date.strftime('%Y-%m-%d')}_TMIN.asc")
+        dstpath = os.path.join(processed_datadir_tmin, f"{date.strftime('%Y-%m-%d')}_TMIN.tif")
 
         future = dask.delayed(process_nc)(basin_bounds,date, srcpath, dstpath, temp_datadir, "tmin")
         futures.append(future)
@@ -602,7 +537,7 @@ def process_data(basin_bounds,raw_datadir, processed_datadir, begin, end, secret
 
     for date in required_dates:
         srcpath = os.path.join(daily_datadir_uwnd, date.strftime('%Y')+'.nc')
-        dstpath = os.path.join(processed_datadir_uwnd, f"{date.strftime('%Y-%m-%d')}_UWND.asc")
+        dstpath = os.path.join(processed_datadir_uwnd, f"{date.strftime('%Y-%m-%d')}_UWND.tif")
 
         future = dask.delayed(process_nc)(basin_bounds,date, srcpath, dstpath, temp_datadir, "uwnd")
         futures.append(future)
@@ -620,7 +555,7 @@ def process_data(basin_bounds,raw_datadir, processed_datadir, begin, end, secret
 
     for date in required_dates:
         srcpath = os.path.join(daily_datadir_vwnd, date.strftime('%Y')+'.nc')
-        dstpath = os.path.join(processed_datadir_vwnd, f"{date.strftime('%Y-%m-%d')}_VWND.asc")
+        dstpath = os.path.join(processed_datadir_vwnd, f"{date.strftime('%Y-%m-%d')}_VWND.tif")
 
         future = dask.delayed(process_nc)(basin_bounds,date, srcpath, dstpath, temp_datadir, "vwnd")
         futures.append(future)

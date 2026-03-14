@@ -334,7 +334,7 @@ class CombinedNC:
             log.debug("Combining data: %s", reqDate)
             # pbar.set_description(reqDate)
 
-            precipfilepath = os.path.join(self._datadir, f'precipitation/{reqDate}_IMERG.asc')
+            precipfilepath = os.path.join(self._datadir, f'precipitation/{reqDate}_IMERG.tif')
             precipitation = rxr.open_rasterio(precipfilepath,masked=True).sel(band=1, drop=True).astype(np.float32)
             # Replace no-data values with NaN
             precipitation = precipitation.where(precipitation != precipitation.rio.nodata, np.nan)
@@ -342,7 +342,7 @@ class CombinedNC:
             precip_da = precipitation.expand_dims(time=[date])
 
             #Reading Maximum Temperature ASCII file contents
-            tmaxfilepath = os.path.join(self._datadir, f'tmax/{reqDate}_TMAX.asc')
+            tmaxfilepath = os.path.join(self._datadir, f'tmax/{reqDate}_TMAX.tif')
             tmax = rxr.open_rasterio(tmaxfilepath,masked=True).sel(band=1, drop=True).astype(np.float32)
             # Replace no-data values with NaN
             tmax = tmax.where(tmax != tmax.rio.nodata, np.nan)
@@ -350,7 +350,7 @@ class CombinedNC:
             tmax_da = tmax.expand_dims(time=[date])
 
             #Reading Minimum Temperature ASCII file contents
-            tminfilepath = os.path.join(self._datadir, f'tmin/{reqDate}_TMIN.asc')
+            tminfilepath = os.path.join(self._datadir, f'tmin/{reqDate}_TMIN.tif')
             tmin = rxr.open_rasterio(tminfilepath,masked=True).sel(band=1, drop=True).astype(np.float32)
             # Replace no-data values with NaN
             tmin = tmin.where(tmin != tmin.rio.nodata, np.nan)
@@ -358,11 +358,11 @@ class CombinedNC:
             tmin_da = tmin.expand_dims(time=[date])
 
             #Reading Average Wind Speed ASCII file contents
-            uwndfilepath = os.path.join(self._datadir, f'uwnd/{reqDate}_UWND.asc')
+            uwndfilepath = os.path.join(self._datadir, f'uwnd/{reqDate}_UWND.tif')
             uwnd = rxr.open_rasterio(uwndfilepath,masked=True).sel(band=1, drop=True).astype(np.float32)
 
             # #Reading Average Wind Speed ASCII file contents
-            vwndfilepath = os.path.join(self._datadir, f'vwnd/{reqDate}_VWND.asc')
+            vwndfilepath = os.path.join(self._datadir, f'vwnd/{reqDate}_VWND.tif')
             vwnd = rxr.open_rasterio(vwndfilepath,masked=True).sel(band=1, drop=True).astype(np.float32)
             wind = (0.75*np.sqrt(uwnd**2 + vwnd**2))
             # Replace no-data values with NaN
@@ -388,11 +388,11 @@ class CombinedNC:
         ds_chunk = xr.concat(ds_list, dim='time')
         # Rename dimensions & coordinates from 'x' and 'y' to 'lon' and 'lat'
         ds_chunk = ds_chunk.rename({'x': 'lon', 'y': 'lat'})
-        # Set latitude and longitude as required by metsim
-        ds_chunk.coords['lat'] = np.flip(self._latitudes1d) 
-        ds_chunk.coords['lon'] = self._longitudes1d
         # Drop unwanted coordinates or variables
         ds_chunk = ds_chunk.drop('spatial_ref')
+        # Round coordinates to 5 decimal places to match domain.nc (created with .round(5))
+        ds_chunk['lat'] = ds_chunk['lat'].round(5)
+        ds_chunk['lon'] = ds_chunk['lon'].round(5)
 
         # If existing data is there  and we're not starting from scratch, append data to the existing data 
         if existing_to_append:
@@ -480,14 +480,11 @@ class CombinedNC:
     
     def _apply_dataset_operations(self):
         da = xr.open_dataset(self._outputpath)
-        ### create extent variable to be added in the dataset
         extent_da = xr.DataArray(
                 data=self._ar,
                 coords={'lat': np.flip(self._latitudes1d), 'lon': self._longitudes1d},
                 dims=['lat', 'lon'],
-                name='extent'  
-            )
-        ### Add extent DataArray to dataset as a variable
+            ).rename('extent')
         da['extent'] = extent_da
         clean_da = self._impute_basin_missing_data(da)
         clean_da = self._min_max_temperature_check(clean_da)
