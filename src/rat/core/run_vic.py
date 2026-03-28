@@ -6,6 +6,8 @@ import numpy as np
 import csv
 import time
 import math
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime
 from pathlib import Path
 from functools import partial
@@ -18,6 +20,24 @@ from rat.utils.vic_param_reader import VICParameterFile
 
 log = getLogger(LOG_NAME)
 log.setLevel(LOG_LEVEL)
+
+
+def _available_ram_bytes():
+    """Return available system RAM in bytes, or None if undeterminable."""
+    try:
+        import psutil
+        return psutil.virtual_memory().available
+    except ImportError:
+        pass
+    try:
+        with open('/proc/meminfo') as f:
+            for line in f:
+                if line.startswith('MemAvailable:'):
+                    return int(line.split()[1]) * 1024
+    except Exception:
+        pass
+    return None
+
 
 class VICRunner():
     def __init__(self, vic_env, param_file, vic_result_file, rout_input_dir, conda_hook = None) -> None:
@@ -72,11 +92,25 @@ class VICRunner():
 
     def disagg_results(self, rout_input_state_file):
         log.log(NOTIFICATION, "Started disaggregating VIC results")
-        fluxes = xr.open_dataset(rout_input_state_file)#.load()
-
+        fluxes = xr.open_dataset(rout_input_state_file)
         fluxes_subset = fluxes[['OUT_PREC', 'OUT_EVAP', 'OUT_RUNOFF', 'OUT_BASEFLOW']]
 
-        nonnans = fluxes_subset.OUT_PREC.isel(time=0).values.flatten()
+        available_ram = _available_ram_bytes()
+        fits_in_ram = available_ram is not None and fluxes_subset.nbytes * 1.5 <= available_ram
+
+        if fits_in_ram:
+            log.log(NOTIFICATION, "Loading dataset into memory for parallel disaggregation "
+                    "(%.1f GB available, %.1f GB needed)", available_ram / 1e9, fluxes_subset.nbytes * 1.5 / 1e9)
+            fluxes_subset = fluxes_subset.load()
+            read_lock = None
+        else:
+            log.log(NOTIFICATION, "Insufficient RAM to load dataset; xarray reads will be serialized "
+                    "(%.1f GB available, %.1f GB needed)",
+                    (available_ram or 0) / 1e9, fluxes_subset.nbytes * 1.5 / 1e9)
+            read_lock = threading.Lock()
+
+        first_time_slice = fluxes_subset.OUT_PREC.isel(time=0).values
+        nonnans = first_time_slice.flatten()
         nonnans = nonnans[~np.isnan(nonnans)]
         total = len(nonnans)
 
@@ -88,19 +122,32 @@ class VICRunner():
         lats_vicfmt = (np.floor(np.abs(fluxes_subset.lat.values)*100)/100)*np.sign(fluxes_subset.lat.values)
         lons_vicfmt = (np.floor(np.abs(fluxes_subset.lon.values)*100)/100)*np.sign(fluxes_subset.lon.values)
 
-        s = time.time()
-        for lat, lat_val in enumerate(fluxes_subset.lat):
-            for lon in range(len(fluxes_subset.lon)):
-                if not math.isnan(fluxes_subset.OUT_PREC.isel(time=0, lat=lat, lon=lon).values):
-                    fname = os.path.join(self.rout_input, f"fluxes_{lats_vicfmt[lat]:.2f}_{lons_vicfmt[lon]:.2f}")
-                    # pbar.set_description(f"{fname}")
+        # Pre-compute all valid (lat, lon) index pairs
+        valid_cells = [
+            (lat, lon)
+            for lat in range(len(fluxes_subset.lat))
+            for lon in range(len(fluxes_subset.lon))
+            if not math.isnan(first_time_slice[lat, lon])
+        ]
 
+        def write_cell(lat, lon):
+            fname = os.path.join(self.rout_input, f"fluxes_{lats_vicfmt[lat]:.2f}_{lons_vicfmt[lon]:.2f}")
+            if read_lock is not None:
+                with read_lock:
                     da = fluxes_subset.isel(lat=lat, lon=lon).to_dataframe().reset_index()
+            else:
+                da = fluxes_subset.isel(lat=lat, lon=lon).to_dataframe().reset_index()
+            da.to_csv(fname, sep=' ', header=False, index=False, float_format="%.5f", quotechar="\x00", quoting=csv.QUOTE_NONE, date_format="%Y %m %d", escapechar="\t")
 
-                    da.to_csv(fname, sep=' ', header=False, index=False, float_format="%.5f", quotechar="", quoting=csv.QUOTE_NONE, date_format="%Y %m %d", escapechar="\t")
-            
-            print(f"All files for latitude {lat_val.values:.4f}° have been written. ({lat}/{len(fluxes_subset.lat)})")
-                        # pbar.update(1)
-        # See how many files were created
+        s = time.time()
+        with ThreadPoolExecutor() as executor:
+            futures = {executor.submit(write_cell, lat, lon): (lat, lon) for lat, lon in valid_cells}
+            completed = 0
+            for future in as_completed(futures):
+                future.result()  # re-raise any exception from the worker
+                completed += 1
+                if completed % 500 == 0:
+                    log.debug("Disaggregated %s/%s files...", completed, total)
+
         disagg_n = len(os.listdir(self.rout_input))
         log.log(NOTIFICATION, "Finished disaggregating %s/%s files in %s seconds", disagg_n, total, f"{(time.time()-s):.3f}")
