@@ -465,7 +465,8 @@ def rat_basin(config, rat_logger, forecast_mode=False, gfs_days=0, forecast_base
                 basingridpath= basingridfile_path,
                 outputdir= combined_datapath,
                 use_previous= use_previous_data,
-                climatological_data=config['METSIM'].get('historical_precipitation')
+                climatological_data=config['METSIM'].get('historical_precipitation'),
+                n_workers=config['GLOBAL']['multiprocessing']
             )
             if gfs_days:
                 CombinedNC(
