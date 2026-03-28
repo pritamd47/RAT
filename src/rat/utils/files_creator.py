@@ -8,7 +8,6 @@ import geopandas as gpd
 import pandas as pd
 
 from rat.utils.utils import round_pixels,round_up
-from rat.utils.run_command import run_command
 
 
 def create_basingridfile(basin_bounds,basin_geometry,basingridfile_path,xres,yres):    
@@ -96,14 +95,20 @@ def create_basin_grid_flow_asc(global_flow_grid_dir_tif, basingridfile_path, sav
         basin_flow_grid_dir.rio.to_raster(savepath+'.tif', dtype='int16')
 
     # Change format, and save as asc file
-    cmd = [
-        'gdal_translate',
-        '-of', 
-        'aaigrid', 
-        savepath+'.tif', 
-        savepath+'.asc'
-    ]
-    cmd_out_code = run_command(cmd)
+    with rasterio.open(savepath + '.tif') as src:
+        data = src.read(1)
+        with rasterio.open(
+            savepath + '.asc', 'w',
+            driver='AAIGrid',
+            height=src.height,
+            width=src.width,
+            count=1,
+            dtype=src.dtypes[0],
+            crs=src.crs,
+            transform=src.transform,
+            nodata=src.nodata,
+        ) as dst:
+            dst.write(data, 1)
 
 def create_basin_station_latlon_csv(region_name, basin_name, global_station_file, basin_gpd_df, column_dict, savepath, geojson_file=True):
     basins_station=gpd.read_file(global_station_file)
